@@ -21,7 +21,7 @@ from gen3.metadata import Gen3Metadata
 
 import sevenbridges as sbg
 
-import PicSureClient, PicSureHpdsLib
+import picsure
 
 from utils.svg import SERVICE_OK, SERVICE_ERROR, SERVICE_UNKNOWN, make_last_updated_svg
 
@@ -385,19 +385,11 @@ def picsure_realtime_status():
     # Based on: https://github.com/hms-dbmi/pic-sure-python-client
     #      and: https://terra.biodatacatalyst.nhlbi.nih.gov/#workspaces/biodata-catalyst/BioData%20Catalyst%20PIC-SURE%20API%20Python%20examples/notebooks
     token = os.environ['PICSURE_AUTH_TOKEN']
-    domain = 'https://picsure.biodatacatalyst.nhlbi.nih.gov/picsure'
-    resource_id = '02e23f52-f354-4e8b-992c-d37c8b9ba140'
     try:
-        client = PicSureClient.Client()
-        connection = client.connect(domain, token)
-        adapter = PicSureHpdsLib.Adapter(connection)
-        resource = adapter.useResource(resource_id)
-        copdgene_data = resource.dictionary().find("Genetic Epidemiology of COPD (COPDGene)").DataFrame()
-        header_seen = 'Genetic Epidemiology of COPD (COPDGene)' in str(copdgene_data.index)
-        ## last line looks like: "[353 rows x 7 columns]"; parse this to determine a non-zero # of rows
-        # rows_are_non_zero = int(str(copdgene_data).split('\n')[-1].split(' ')[0][1:]) > 0
-        return True  # and rows_are_non_zero
-    except Exception as e:  # if not authorized, this returns a KeyError
+        session = picsure.connect(platform=picsure.Platform.BDC_AUTHORIZED, token=token)
+        session.searchDictionary('Genetic Epidemiology of COPD (COPDGene)', include_values=False, page=0, page_size=1)
+        return True
+    except Exception as e:
         print(f'Failed to get status from PIC-SURE:\n{e}')
         return False
 
